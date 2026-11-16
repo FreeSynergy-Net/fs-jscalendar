@@ -1,0 +1,2 @@
+# Lock check (fs-release scripts/check_lock_sources.py): a violation is a red gate in this repo.
+strict = true
