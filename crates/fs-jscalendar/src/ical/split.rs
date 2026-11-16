@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 /// Which objects a caller owns: its components become parts, the other kind stays out of them.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Component {
-    /// `VEVENT`, owned by `fs-calendar`.
+    /// `VEVENT`, owned by `fs-calendars`.
     Event,
     /// `VTODO`, owned by `fs-tasks`.
     Task,

@@ -1,4 +1,4 @@
-//! The typed recurrence rule (RFC 8984 `RecurrenceRule`) that `fs-calendar` and `fs-tasks` share.
+//! The typed recurrence rule (RFC 8984 `RecurrenceRule`) that `fs-calendars` and `fs-tasks` share.
 //!
 //! Pattern: Value object — plain data with public fields; the rule *engine* is a strategy of the
 //! owners. The shape is field for field the one both topic traits already use (ADR 0085), so

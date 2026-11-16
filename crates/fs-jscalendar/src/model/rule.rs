@@ -1,6 +1,6 @@
 //! The recurrence rule of JSCalendar 2.0.
 //!
-//! Pattern: Value object — plain serde data; the rule *engine* is a strategy of `fs-calendar`.
+//! Pattern: Value object — plain serde data; the rule *engine* is a strategy of `fs-calendars`.
 
 // The members mirror the JSCalendar property names one to one; documenting each would only
 // repeat the specification.

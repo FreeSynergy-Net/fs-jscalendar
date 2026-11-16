@@ -1,7 +1,7 @@
 //! `fs-jscalendar`: the shared types of the JSCalendar 2.0 standard.
 //!
 //! A plain library: **no data, no storage, no interface, no program** (ADR 0050). The objects
-//! themselves belong to their owners, `Event` to `fs-calendar` and `Task` to `fs-tasks`; both build
+//! themselves belong to their owners, `Event` to `fs-calendars` and `Task` to `fs-tasks`; both build
 //! on what is here, so nothing is copied (ADR 0043 §4). See `DESIGN.md` for the pattern map.
 //!
 //! Pattern: Facade — this file only declares modules and re-exports the public API.
