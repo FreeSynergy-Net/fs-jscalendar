@@ -17,7 +17,5 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 uuid = { version = "1", features = ["v7"] }
-# PROVISIONAL (blocker for main): path dependency on the unmerged branch unreviewed/fs-types-gemeinsam of fs-interfaces
-# (shared types Utc, LocalDateTime, Reference ...). After the merge and the tag of fs-interfaces this line becomes
-# fs-types = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.NN" } like the other pins.
-fs-types = { path = "../../../fs-types-gemeinsam/crates/fs-types" }
+# The shared basic types (Utc, LocalDateTime, Reference ...): pinned like the other FreeSynergy crates; the same tag as calendar and tasks.
+fs-types = { git = "https://github.com/FreeSynergy/fs-interfaces", tag = "v0.0.22" }

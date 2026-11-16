@@ -20,10 +20,10 @@ Version 0.0.2. Taken from `fs-tasks-core` and `fs-calendar-core`, which held ide
 | `validate`: `Ctx`, `common`, `shared`, recurrence rule; owners add their own rules | done |
 | `ical`: `split_ics(text, Component)`, `unfolded_lines`, `parse_entries`, `write_ics` through `calcard =0.3.14`; components are found on unfolded lines, so a continuation line never ends one | done |
 | Date-times: exactly `YYYY-MM-DDTHH:MM:SS`, second 60 refused; messages quote a value short and escaped (`quoted`) | done |
-| `recurrence`: typed `RecurrenceRule` (calendar plan D5 subset), `Recurrence::{Rule, Original(text)}`, RRULE text reader (`parse_rrule`, `parse_rrule_in` with the zone for a UTC `UNTIL`; RFC 5545 3.3.10 combinations checked) and writer (`to_rrule`, `to_rrule_for(date_only)`) | done (0.0.2) |
+| `recurrence`: typed `RecurrenceRule` (calendar plan D5 subset), `Recurrence::{Rule, Original(text)}`, RRULE text reader (`parse_rrule`, `parse_rrule_in` with the zone for a UTC or date `UNTIL`; RFC 5545 3.3.10 combinations checked) and writer (`to_rrule`, `to_rrule_for(date_only)`, `to_rrule_in(zone)`) | done (0.0.2) |
 | `origin`: `Origin`, `OriginChannel` (fs-objects `object_origin`) | done (0.0.2) |
 | `alert`: `Alert`, `Trigger`, `RelativeTo`, `AlertAction` | done (0.0.2) |
-| Tests | 30 here; the behaviour is also covered by the tests of both owners |
+| Tests | 34 here; the behaviour is also covered by the tests of both owners |
 
 ## Structure and pattern map (ADR 0043)
 
@@ -51,5 +51,6 @@ Version 0.0.2. Taken from `fs-tasks-core` and `fs-calendar-core`, which held ide
 - **Typed shared types (0.0.2):** `recurrence`, `origin` and `alert` are the single home of the types that calendar and tasks both need (decision 2026-11-16, no stand-in copies in `tasks_v1`). They are *not* the string-typed wire form of `model::RecurrenceRule`; that one stays for the JSON object. `alert::RelativeTo::End` is, for a task, its due time (RFC 8984).
 - **Conversion from the locked calendar stand-ins** is lossless both ways (test `fs-jscalendar-umwandlung-test.rs` in the calendar pilot): `TryFrom` where `fs-types` is stricter than the stand-in (a refused value is an error, never changed). `Recurrence::Original` has no stand-in form; the way back reports the text.
 - **Supported rule subset (D5):** `FREQ`, `INTERVAL`, `COUNT` or `UNTIL` (wall clock or date), `BYDAY`, `BYMONTHDAY`, `BYMONTH`, `BYSETPOS`, `WKST`. The typed rule has all RFC 8984 fields so the owners' engines can grow; the reader accepts only the subset.
-- **Provisional dependency:** `fs-types` is a path dependency on the branch `unreviewed/fs-types-gemeinsam` of `fs-interfaces` until it is merged and tagged; then it becomes a `git` + `tag` pin like the others. Not for `main` before that.
+- **`fs-types` pin:** `fs-types` is pinned to the tag `v0.0.22` of `fs-interfaces` like the other pins. Calendar and tasks must pin the same tag, otherwise `LocalDateTime` and `Utc` are different types.
+- **Reference point with a time (`parse_rrule_in` / `to_rrule_in`):** a UTC `UNTIL` is read in the zone of the reference point through the crate's own `time::Zone` (the tz database recorded with every import); a date `UNTIL` is read tolerantly as the end of that day and reported in `ReadRule::until_adjusted` (loss/normalisation note); the export always writes the RFC 5545 form (UTC date-time). A date with `Z` is refused.
 - **Text round trip:** a typed rule written and read back is the same rule, not the same text (`+1MO` becomes `1MO`, `INTERVAL=1` and `WKST=MO` fall away). "Unchanged" stays byte for byte through `Origin::original` (ADR 0085/0086). A typed rule with parts outside the readable subset (`BYHOUR`, `BYYEARDAY`, ...) reads back as `Original`.

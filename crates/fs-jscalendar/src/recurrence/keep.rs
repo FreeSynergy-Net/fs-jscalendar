@@ -4,7 +4,16 @@
 //! (ADR 0030, ADR 0085), never as a JSON in-between form, so an unchanged object exports the same
 //! text again.
 
-use super::RecurrenceRule;
+use super::{RecurrenceRule, RruleProblem};
+
+/// A recurrence read for a reference point with a time, with what the reading normalised.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReadRecurrence {
+    /// The recurrence.
+    pub recurrence: Recurrence,
+    /// A date `UNTIL` was read as the end of that day in the zone (normalisation / loss note).
+    pub until_adjusted: bool,
+}
 
 /// One recurrence of an object: a rule to compute with, or text to keep.
 // The rule is not boxed: its shape is the one both owners' stand-ins have, and a series has few of them.
@@ -28,12 +37,33 @@ impl Recurrence {
             .map_or_else(|_| Self::Original(text.to_owned()), Self::Rule)
     }
 
-    /// Like [`Recurrence::from_rrule`], with the zone of the reference point so a UTC `UNTIL` is
-    /// turned into that zone's wall clock.
+    /// Like [`Recurrence::from_rrule`], for a reference point with a time in `zone`: a UTC
+    /// `UNTIL` becomes that zone's wall clock, a date `UNTIL` the end of that day (see
+    /// [`RecurrenceRule::parse_rrule_in`]; `until_adjusted` carries the note).
     #[must_use]
-    pub fn from_rrule_in(text: &str, zone: &fs_types::Zone) -> Self {
-        RecurrenceRule::parse_rrule_in(text, zone)
-            .map_or_else(|_| Self::Original(text.to_owned()), Self::Rule)
+    pub fn from_rrule_in(text: &str, zone: &fs_types::Zone) -> ReadRecurrence {
+        match RecurrenceRule::parse_rrule_in(text, zone) {
+            Ok(read) => ReadRecurrence {
+                recurrence: Self::Rule(read.rule),
+                until_adjusted: read.until_adjusted,
+            },
+            Err(_) => ReadRecurrence {
+                recurrence: Self::Original(text.to_owned()),
+                until_adjusted: false,
+            },
+        }
+    }
+
+    /// The RRULE text for a reference point with a time in `zone` (UTC `UNTIL`, see
+    /// [`RecurrenceRule::to_rrule_in`]); an original is returned as it is.
+    ///
+    /// # Errors
+    /// `RruleProblem::Zone` for a zone that is unknown or custom, when a rule has an `UNTIL`.
+    pub fn to_rrule_in(&self, zone: &fs_types::Zone) -> Result<String, RruleProblem> {
+        match self {
+            Self::Rule(rule) => rule.to_rrule_in(zone),
+            Self::Original(text) => Ok(text.clone()),
+        }
     }
 
     /// The RRULE text: the original as it is, or the written form of the rule.

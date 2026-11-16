@@ -6,7 +6,7 @@ use std::fmt::{Display, Write as _};
 
 use fs_types::LocalDateTime;
 
-use super::{Frequency, NDay, RecurrenceRule, RuleEnd, Skip, Weekday};
+use super::{Frequency, NDay, RecurrenceRule, RruleProblem, RuleEnd, Skip, Weekday};
 
 const fn weekday(day: Weekday) -> &'static str {
     match day {
@@ -72,6 +72,31 @@ impl RecurrenceRule {
     /// `UNTIL` is written `YYYYMMDD`, as RFC 5545 wants the same value type as `DTSTART`.
     #[must_use]
     pub fn to_rrule_for(&self, date_only: bool) -> String {
+        let until = match self.end {
+            RuleEnd::Until(at) if date_only => Some(local(at)[..8].to_owned()),
+            RuleEnd::Until(at) => Some(local(at)),
+            _ => None,
+        };
+        self.render(until)
+    }
+
+    /// The rule as RRULE text for a reference point with a time in `zone`: `UNTIL` is always the
+    /// RFC 5545 form for that case, a UTC date-time (`…Z`), converted from the wall clock of the
+    /// zone ("compatible" disambiguation, like `Zone::to_utc`). Whatever the import tolerated
+    /// (for example a date `UNTIL`), the export writes this form.
+    ///
+    /// # Errors
+    /// `RruleProblem::Zone` for a zone that is unknown or custom, when the rule has an `UNTIL`.
+    pub fn to_rrule_in(&self, zone: &fs_types::Zone) -> Result<String, RruleProblem> {
+        let until = match self.end {
+            RuleEnd::Until(at) => Some(super::until::to_utc_text(at, zone)?),
+            _ => None,
+        };
+        Ok(self.render(until))
+    }
+
+    /// The text, with the already formatted `UNTIL` value when the rule ends that way.
+    fn render(&self, until: Option<String>) -> String {
         let mut out = String::new();
         if let Some(rscale) = &self.rscale {
             let _ = write!(out, "RSCALE={rscale};");
@@ -108,14 +133,8 @@ impl RecurrenceRule {
             RuleEnd::Count(n) => {
                 let _ = write!(out, ";COUNT={n}");
             }
-            RuleEnd::Until(at) => {
-                let text = local(at);
-                let text = if date_only {
-                    text[..8].to_owned()
-                } else {
-                    text
-                };
-                let _ = write!(out, ";UNTIL={text}");
+            RuleEnd::Until(_) => {
+                let _ = write!(out, ";UNTIL={}", until.unwrap_or_default());
             }
         }
         out

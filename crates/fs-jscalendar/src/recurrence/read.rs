@@ -9,6 +9,15 @@ use super::until::until;
 use super::valid::check_combination;
 use super::{ByMonth, Frequency, NDay, RecurrenceRule, RuleEnd, Weekday};
 
+/// A rule read for a reference point with a time, with what the reading normalised.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReadRule {
+    /// The rule.
+    pub rule: RecurrenceRule,
+    /// A date `UNTIL` was read as the end of that day in the zone (normalisation / loss note).
+    pub until_adjusted: bool,
+}
+
 /// Why RRULE text is not inside the subset. The text is kept by the caller, never dropped.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum RruleProblem {
@@ -93,23 +102,31 @@ impl RecurrenceRule {
     /// # Errors
     /// An [`RruleProblem`] for anything else; the caller keeps the text.
     pub fn parse_rrule(text: &str) -> Result<Self, RruleProblem> {
-        Self::parse_with(text, None)
+        Self::parse_with(text, None).map(|read| read.rule)
     }
 
-    /// Like [`RecurrenceRule::parse_rrule`], and a UTC `UNTIL` (`…Z`, what RFC 5545 demands when
-    /// the start has a time zone) is turned into the wall clock of `zone`, the zone of the
-    /// reference point; across a daylight-saving change the offset of the end instant is used.
+    /// Like [`RecurrenceRule::parse_rrule`], for a reference point with a time in `zone`.
+    ///
+    /// - A UTC `UNTIL` (`...Z`, what RFC 5545 demands there) becomes the wall clock of `zone`; the
+    ///   offset in force at the end instant is used. When the clock goes back (the overlap, e.g.
+    ///   Berlin 2026-10-25) two instants an hour apart (00:30Z and 01:30Z) give the same wall
+    ///   clock 02:30; this shows only with `HOURLY`/`MINUTELY` rules.
+    /// - A date `UNTIL` is RFC-wrong here (the type must equal that of `DTSTART`) but common. It is
+    ///   read tolerantly, as libical and Google do: the named day counts up to its end in `zone`
+    ///   (`T23:59:59`), and [`ReadRule::until_adjusted`] says so, as a normalisation note for the
+    ///   loss report. The export ([`RecurrenceRule::to_rrule_in`]) writes the RFC form.
     ///
     /// # Errors
     /// An [`RruleProblem`] (`Zone` for a zone that is unknown or custom); the caller keeps the text.
-    pub fn parse_rrule_in(text: &str, zone: &Zone) -> Result<Self, RruleProblem> {
+    pub fn parse_rrule_in(text: &str, zone: &Zone) -> Result<ReadRule, RruleProblem> {
         Self::parse_with(text, Some(zone))
     }
 
-    fn parse_with(text: &str, zone: Option<&Zone>) -> Result<Self, RruleProblem> {
+    fn parse_with(text: &str, zone: Option<&Zone>) -> Result<ReadRule, RruleProblem> {
         let mut seen = Vec::new();
         let mut rule = Self::every(Frequency::Daily, 1);
         let mut have_freq = false;
+        let mut until_adjusted = false;
         for part in text.trim().trim_start_matches("RRULE:").split(';') {
             let (name, value) = part.split_once('=').ok_or(RruleProblem::Malformed)?;
             if value.is_empty() || seen.contains(&name) {
@@ -146,7 +163,11 @@ impl RecurrenceRule {
                             .ok_or(RruleProblem::Value("COUNT"))?,
                     );
                 }
-                "UNTIL" => rule.end = RuleEnd::Until(until(value, zone)?),
+                "UNTIL" => {
+                    let read = until(value, zone)?;
+                    until_adjusted = read.adjusted;
+                    rule.end = RuleEnd::Until(read.at);
+                }
                 "WKST" => {
                     rule.first_day_of_week = weekday(value).ok_or(RruleProblem::Value("WKST"))?;
                 }
@@ -175,6 +196,9 @@ impl RecurrenceRule {
             return Err(RruleProblem::End);
         }
         check_combination(&rule, &seen)?;
-        Ok(rule)
+        Ok(ReadRule {
+            rule,
+            until_adjusted,
+        })
     }
 }

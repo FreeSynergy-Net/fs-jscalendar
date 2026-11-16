@@ -21,7 +21,7 @@ Latest tag: `v0.0.1`.
 ## What is not there yet
 
 - No events or tasks of its own, no storage, no interface, no repeat expansion. Those stay with their owners.
-- Only 30 tests live here; most of the behaviour is also covered by the tests of both owners.
+- Only 34 tests live here; most of the behaviour is also covered by the tests of both owners.
 
 ## Part of FreeSynergy
 

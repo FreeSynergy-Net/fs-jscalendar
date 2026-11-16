@@ -11,6 +11,6 @@ mod until;
 mod valid;
 mod write;
 
-pub use keep::{OriginalText, Recurrence};
-pub use read::RruleProblem;
+pub use keep::{OriginalText, ReadRecurrence, Recurrence};
+pub use read::{ReadRule, RruleProblem};
 pub use rule::{ByMonth, Frequency, NDay, RecurrenceRule, RuleEnd, Skip, Weekday};
