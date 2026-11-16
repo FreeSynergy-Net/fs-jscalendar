@@ -20,7 +20,10 @@ Version 0.1.3. Taken from `fs-tasks-core` and `fs-calendar-core`, which held ide
 | `validate`: `Ctx`, `common`, `shared`, recurrence rule; owners add their own rules | done |
 | `ical`: `split_ics(text, Component)`, `unfolded_lines`, `parse_entries`, `write_ics` through `calcard =0.3.14`; components are found on unfolded lines, so a continuation line never ends one | done |
 | Date-times: exactly `YYYY-MM-DDTHH:MM:SS`, second 60 refused; messages quote a value short and escaped (`quoted`) | done |
-| Tests | 17 here; the behaviour is also covered by the tests of both owners |
+| `recurrence`: typed `RecurrenceRule` (calendar plan D5 subset), `Recurrence::{Rule, Original(text)}`, RRULE text reader and writer | done (0.0.2) |
+| `origin`: `Origin`, `OriginChannel` (fs-objects `object_origin`) | done (0.0.2) |
+| `alert`: `Alert`, `Trigger`, `RelativeTo`, `AlertAction` | done (0.0.2) |
+| Tests | 23 here; the behaviour is also covered by the tests of both owners |
 
 ## Structure and pattern map (ADR 0043)
 
@@ -28,6 +31,8 @@ Version 0.1.3. Taken from `fs-tasks-core` and `fs-calendar-core`, which held ide
 |---|---|---|
 | `model/macros.rs` | Template method (macro form) | fixes the skeleton of an object; owners list only their own members |
 | `model/{participant,rule}.rs` | Value object | plain serde data, lossless `extra` |
+| `recurrence/rule.rs`, `origin.rs`, `alert.rs` | Value object | typed shapes shared by calendar and tasks, field for field the ones both topic traits use; basic types from `fs-types` |
+| `recurrence/{read,write}.rs` | Adapter | RRULE text <-> typed rule; outside the subset the text is kept (`Recurrence::Original`), no JSON in-between form (ADR 0030) |
 | `time/source.rs`, `bundled.rs`, `system.rs` | Strategy + Template method | `ZoneSource`: where tz rules come from |
 | `time/select.rs` | Factory | picks the newest of system and bundled tzdb at first use |
 | `time/{zone,dur,format}.rs` | Value objects | `Zone`, nominal-day + exact-second `Dur`, wire formats |
@@ -43,3 +48,7 @@ Version 0.1.3. Taken from `fs-tasks-core` and `fs-calendar-core`, which held ide
 - **Errors:** owners turn `fs_jscalendar::Error` into their own with one `From` and keep the same variants.
 - **`calcard` is pinned to `=0.3.14`:** the last MIT/Apache version before later releases moved to AGPL.
 - **`uid`s without `fs-store`:** this crate stores nothing, so it does not depend on the store. `new_uid` makes the same `urn:uuid:` + UUIDv7 form.
+- **Typed shared types (0.0.2):** `recurrence`, `origin` and `alert` are the single home of the types that calendar and tasks both need (decision 2026-11-16, no stand-in copies in `tasks_v1`). They are *not* the string-typed wire form of `model::RecurrenceRule`; that one stays for the JSON object. `alert::RelativeTo::End` is, for a task, its due time (RFC 8984).
+- **Conversion from the locked calendar stand-ins** is lossless both ways (test `fs-jscalendar-umwandlung-test.rs` in the calendar pilot): `TryFrom` where `fs-types` is stricter than the stand-in (a refused value is an error, never changed). `Recurrence::Original` has no stand-in form; the way back reports the text.
+- **Supported rule subset (D5):** `FREQ`, `INTERVAL`, `COUNT` or `UNTIL` (wall clock or date), `BYDAY`, `BYMONTHDAY`, `BYMONTH`, `BYSETPOS`, `WKST`. The typed rule has all RFC 8984 fields so the owners' engines can grow; the reader accepts only the subset.
+- **Provisional dependency:** `fs-types` is a path dependency on the branch `unreviewed/fs-types-gemeinsam` of `fs-interfaces` until it is merged and tagged; then it becomes a `git` + `tag` pin like the others. Not for `main` before that.

@@ -17,10 +17,13 @@
     clippy::module_name_repetitions
 )]
 
+pub mod alert;
 mod clock;
 mod error;
 pub mod ical;
 pub mod model;
+pub mod origin;
+pub mod recurrence;
 pub mod time;
 mod uid;
 pub mod upgrade;
