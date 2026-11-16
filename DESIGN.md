@@ -9,7 +9,7 @@ task status (`fs-tasks`). A type moves here only when both owners really use it.
 
 ## State
 
-Version 0.0.2. Taken from `fs-tasks-core` and `fs-calendars-core`, which held identical copies.
+Version 0.0.4. Taken from `fs-tasks-core` and `fs-calendars-core`, which held identical copies.
 
 | Area | State |
 |---|---|
