@@ -65,6 +65,13 @@ impl RecurrenceRule {
     /// the readable subset.
     #[must_use]
     pub fn to_rrule(&self) -> String {
+        self.to_rrule_for(false)
+    }
+
+    /// Like [`RecurrenceRule::to_rrule`]; with `date_only` (the reference point is a plain date)
+    /// `UNTIL` is written `YYYYMMDD`, as RFC 5545 wants the same value type as `DTSTART`.
+    #[must_use]
+    pub fn to_rrule_for(&self, date_only: bool) -> String {
         let mut out = String::new();
         if let Some(rscale) = &self.rscale {
             let _ = write!(out, "RSCALE={rscale};");
@@ -102,7 +109,13 @@ impl RecurrenceRule {
                 let _ = write!(out, ";COUNT={n}");
             }
             RuleEnd::Until(at) => {
-                let _ = write!(out, ";UNTIL={}", local(at));
+                let text = local(at);
+                let text = if date_only {
+                    text[..8].to_owned()
+                } else {
+                    text
+                };
+                let _ = write!(out, ";UNTIL={text}");
             }
         }
         out

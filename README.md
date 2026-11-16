@@ -12,6 +12,7 @@ Latest tag: `v0.0.1`.
 
 - Time zones, with the newest tz database found (system or bundled), durations, local and UTC date-times.
 - Shared types for participants and repeat rules, with unknown properties kept.
+- Typed repeat rule (`recurrence`, with the original text kept for a rule it cannot compute), origin of imported objects (`origin`) and reminders (`alert`), shared by Calendar and Tasks.
 - Upgrade from RFC 8984 to JSCalendar 2.0, safe to repeat, dropping nothing.
 - Validation that reports all problems at once.
 - Split, read and write iCalendar through a pinned `calcard` version; the original text per entry stays byte for byte.
@@ -20,7 +21,7 @@ Latest tag: `v0.0.1`.
 ## What is not there yet
 
 - No events or tasks of its own, no storage, no interface, no repeat expansion. Those stay with their owners.
-- Only 17 tests live here; most of the behaviour is also covered by the tests of both owners.
+- Only 30 tests live here; most of the behaviour is also covered by the tests of both owners.
 
 ## Part of FreeSynergy
 

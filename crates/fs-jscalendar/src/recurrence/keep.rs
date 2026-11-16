@@ -20,18 +20,34 @@ pub enum Recurrence {
 
 impl Recurrence {
     /// Read RRULE text: the typed rule when it is inside the subset, otherwise the text itself.
-    /// Nothing is dropped, so this never fails.
+    /// Nothing is dropped, so this never fails. A UTC `UNTIL` is outside the subset here; use
+    /// [`Recurrence::from_rrule_in`] when the zone of the reference point is known.
     #[must_use]
     pub fn from_rrule(text: &str) -> Self {
         RecurrenceRule::parse_rrule(text)
             .map_or_else(|_| Self::Original(text.to_owned()), Self::Rule)
     }
 
+    /// Like [`Recurrence::from_rrule`], with the zone of the reference point so a UTC `UNTIL` is
+    /// turned into that zone's wall clock.
+    #[must_use]
+    pub fn from_rrule_in(text: &str, zone: &fs_types::Zone) -> Self {
+        RecurrenceRule::parse_rrule_in(text, zone)
+            .map_or_else(|_| Self::Original(text.to_owned()), Self::Rule)
+    }
+
     /// The RRULE text: the original as it is, or the written form of the rule.
     #[must_use]
     pub fn to_rrule(&self) -> String {
+        self.to_rrule_for(false)
+    }
+
+    /// Like [`Recurrence::to_rrule`]; `date_only` when the reference point is a plain date, so
+    /// `UNTIL` is written as a date too (RFC 5545: same value type as `DTSTART`).
+    #[must_use]
+    pub fn to_rrule_for(&self, date_only: bool) -> String {
         match self {
-            Self::Rule(rule) => rule.to_rrule(),
+            Self::Rule(rule) => rule.to_rrule_for(date_only),
             Self::Original(text) => text.clone(),
         }
     }
@@ -52,14 +68,19 @@ impl From<RecurrenceRule> for Recurrence {
     }
 }
 
+/// The original RRULE text of a recurrence that is no typed rule: the error of
+/// `RecurrenceRule::try_from(Recurrence)`, so nothing is lost on the way.
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[error("recurrence kept as original text: {0}")]
+pub struct OriginalText(pub String);
+
 impl TryFrom<Recurrence> for RecurrenceRule {
-    /// The original text, so nothing is lost on the way.
-    type Error = String;
+    type Error = OriginalText;
 
     fn try_from(value: Recurrence) -> Result<Self, Self::Error> {
         match value {
             Recurrence::Rule(rule) => Ok(rule),
-            Recurrence::Original(text) => Err(text),
+            Recurrence::Original(text) => Err(OriginalText(text)),
         }
     }
 }

@@ -3,7 +3,8 @@
 //! Pattern: Specification by example — each case states one rule of the subset.
 
 use fs_jscalendar::recurrence::{
-    ByMonth, Frequency, NDay, Recurrence, RecurrenceRule, RruleProblem, RuleEnd, Skip, Weekday,
+    ByMonth, Frequency, NDay, OriginalText, Recurrence, RecurrenceRule, RruleProblem, RuleEnd,
+    Skip, Weekday,
 };
 
 fn rule(text: &str) -> RecurrenceRule {
@@ -63,7 +64,7 @@ fn until_wall_clock_and_date() {
 fn write_then_read_is_the_same_rule() {
     for text in [
         "FREQ=DAILY",
-        "FREQ=WEEKLY;INTERVAL=3;WKST=SU;BYDAY=MO,2WE;COUNT=4",
+        "FREQ=MONTHLY;INTERVAL=3;WKST=SU;BYDAY=MO,2WE;COUNT=4",
         "FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=29;UNTIL=20300101T000000",
     ] {
         let r = rule(text);
@@ -121,6 +122,125 @@ fn rule_with_text_conversions() {
     assert_eq!(RecurrenceRule::try_from(wrapped), Ok(r));
     assert_eq!(
         RecurrenceRule::try_from(Recurrence::Original("X".into())),
-        Err("X".to_owned())
+        Err(OriginalText("X".to_owned()))
     );
+}
+
+fn berlin() -> fs_types::Zone {
+    fs_types::Zone::iana("Europe/Berlin").expect("zone")
+}
+
+fn until_of(text: &str) -> String {
+    let RuleEnd::Until(t) = RecurrenceRule::parse_rrule_in(text, &berlin())
+        .expect("rule")
+        .end
+    else {
+        panic!("until")
+    };
+    format!(
+        "{}T{:02}:{:02}:{:02}",
+        fs_types::BasicValue::canonical(&t.date()),
+        t.hour(),
+        t.minute(),
+        t.second()
+    )
+}
+
+#[test]
+fn utc_until_becomes_the_wall_clock_of_the_zone() {
+    // Summer (CEST, +2) and winter (CET, +1).
+    assert_eq!(
+        until_of("FREQ=DAILY;UNTIL=20260715T073000Z"),
+        "2026-07-15T09:30:00"
+    );
+    assert_eq!(
+        until_of("FREQ=DAILY;UNTIL=20261215T073000Z"),
+        "2026-12-15T08:30:00"
+    );
+}
+
+#[test]
+fn utc_until_at_the_daylight_saving_edge() {
+    // Berlin 2026-03-29: 02:00 CET jumps to 03:00 CEST (01:00 UTC).
+    assert_eq!(
+        until_of("FREQ=DAILY;UNTIL=20260328T230000Z"),
+        "2026-03-29T00:00:00"
+    );
+    assert_eq!(
+        until_of("FREQ=DAILY;UNTIL=20260329T005959Z"),
+        "2026-03-29T01:59:59"
+    );
+    assert_eq!(
+        until_of("FREQ=DAILY;UNTIL=20260329T010000Z"),
+        "2026-03-29T03:00:00"
+    );
+    // Back on 2026-10-25: 03:00 CEST (01:00 UTC) becomes 02:00 CET.
+    assert_eq!(
+        until_of("FREQ=DAILY;UNTIL=20261025T005959Z"),
+        "2026-10-25T02:59:59"
+    );
+    assert_eq!(
+        until_of("FREQ=DAILY;UNTIL=20261025T010000Z"),
+        "2026-10-25T02:00:00"
+    );
+}
+
+#[test]
+fn utc_until_with_an_unusable_zone_keeps_the_text() {
+    let text = "FREQ=DAILY;UNTIL=20260715T073000Z";
+    let custom = fs_types::Zone::custom("/mine").expect("zone");
+    assert_eq!(
+        RecurrenceRule::parse_rrule_in(text, &custom),
+        Err(RruleProblem::Zone)
+    );
+    assert_eq!(
+        Recurrence::from_rrule_in(text, &custom),
+        Recurrence::Original(text.to_owned())
+    );
+    assert!(Recurrence::from_rrule_in(text, &berlin()).rule().is_some());
+    assert_eq!(RecurrenceRule::parse_rrule(text), Err(RruleProblem::End));
+}
+
+#[test]
+fn until_is_written_as_a_date_when_the_reference_point_is_a_date() {
+    let r = rule("FREQ=DAILY;UNTIL=20261231");
+    assert_eq!(r.to_rrule(), "FREQ=DAILY;UNTIL=20261231T000000");
+    assert_eq!(r.to_rrule_for(true), "FREQ=DAILY;UNTIL=20261231");
+    assert_eq!(rule(&r.to_rrule_for(true)), r);
+    assert_eq!(
+        Recurrence::from(r).to_rrule_for(true),
+        "FREQ=DAILY;UNTIL=20261231"
+    );
+    assert_eq!(Recurrence::Original("X".into()).to_rrule_for(true), "X");
+}
+
+#[test]
+fn combinations_the_rfc_forbids_stay_original() {
+    for (text, why) in [
+        ("FREQ=MONTHLY;BYSETPOS=1", "BYSETPOS"),
+        ("FREQ=WEEKLY;BYDAY=2MO", "ordinal"),
+        ("FREQ=WEEKLY;BYMONTHDAY=1", "BYMONTHDAY"),
+        ("FREQ=MONTHLY;BYDAY=6MO", "ordinal"),
+        ("FREQ=DAILY;BYDAY=1MO", "ordinal"),
+    ] {
+        assert!(
+            matches!(RecurrenceRule::parse_rrule(text), Err(RruleProblem::Combination(m)) if m.contains(why)),
+            "{text}"
+        );
+        assert_eq!(
+            Recurrence::from_rrule(text),
+            Recurrence::Original(text.to_owned())
+        );
+    }
+    assert!(RecurrenceRule::parse_rrule("FREQ=YEARLY;BYDAY=20MO").is_ok());
+    assert!(RecurrenceRule::parse_rrule("FREQ=MONTHLY;BYDAY=MO;BYSETPOS=-1").is_ok());
+}
+
+#[test]
+fn a_typed_rule_with_parts_outside_the_subset_reads_back_as_original() {
+    let mut r = RecurrenceRule::every(Frequency::Daily, 1);
+    r.by_hour = vec![9];
+    let text = r.to_rrule();
+    assert_eq!(text, "FREQ=DAILY;BYHOUR=9");
+    assert_eq!(Recurrence::from_rrule(&text), Recurrence::Original(text));
 }

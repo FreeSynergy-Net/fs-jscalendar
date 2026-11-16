@@ -3,8 +3,10 @@
 //! Pattern: Adapter (RRULE text to the typed rule) with typed errors; anything outside the subset
 //! is an [`RruleProblem`], and the caller keeps the original text ([`super::Recurrence::from_rrule`]).
 
-use fs_types::{BasicValue, Date, LocalDateTime};
+use fs_types::Zone;
 
+use super::until::until;
+use super::valid::check_combination;
 use super::{ByMonth, Frequency, NDay, RecurrenceRule, RuleEnd, Weekday};
 
 /// Why RRULE text is not inside the subset. The text is kept by the caller, never dropped.
@@ -22,9 +24,18 @@ pub enum RruleProblem {
     /// A value of a part that does not read or is out of range.
     #[error("bad value in {0}")]
     Value(&'static str),
-    /// `COUNT` and `UNTIL` together, or an `UNTIL` in UTC (it is a point in time, not a wall clock).
-    #[error("COUNT with UNTIL, or UNTIL in UTC")]
+    /// `COUNT` and `UNTIL` together, or an `UNTIL` in UTC read without a zone (use
+    /// [`RecurrenceRule::parse_rrule_in`]: a UTC end is a point in time, not a wall clock).
+    #[error("COUNT with UNTIL, or UNTIL in UTC without a zone")]
     End,
+    /// A UTC `UNTIL` that cannot be turned into the wall clock of the zone (unknown or custom zone,
+    /// or a time the zone cannot show).
+    #[error("UNTIL in UTC cannot be converted into the zone")]
+    Zone,
+    /// Well-formed parts that RFC 5545 section 3.3.10 does not allow together (for example
+    /// `BYSETPOS` alone, an ordinal `BYDAY` with `WEEKLY`, `BYMONTHDAY` with `WEEKLY`).
+    #[error("combination not allowed by RFC 5545: {0}")]
+    Combination(&'static str),
 }
 
 fn weekday(text: &str) -> Option<Weekday> {
@@ -75,28 +86,6 @@ fn nday(text: &str) -> Result<NDay, RruleProblem> {
     Ok(NDay { day, nth })
 }
 
-fn until(text: &str) -> Result<LocalDateTime, RruleProblem> {
-    let bad = RruleProblem::Value("UNTIL");
-    if text.ends_with('Z') {
-        return Err(RruleProblem::End);
-    }
-    let digits = |s: &str| s.len() == 8 && s.bytes().all(|b| b.is_ascii_digit());
-    let (day, time) = match text.split_once('T') {
-        Some((d, t)) if t.len() == 6 && t.bytes().all(|b| b.is_ascii_digit()) => {
-            (d, (&t[0..2], &t[2..4], &t[4..6]))
-        }
-        None => (text, ("00", "00", "00")),
-        Some(_) => return Err(bad),
-    };
-    if !digits(day) {
-        return Err(bad);
-    }
-    let date = Date::parse(&format!("{}-{}-{}", &day[0..4], &day[4..6], &day[6..8]))
-        .map_err(|_| bad.clone())?;
-    let n = |s: &str| s.parse::<u8>().map_err(|_| bad.clone());
-    LocalDateTime::new(date, n(time.0)?, n(time.1)?, n(time.2)?).map_err(|_| bad)
-}
-
 impl RecurrenceRule {
     /// Read RRULE text of the supported subset: `FREQ`, `INTERVAL`, `COUNT` or `UNTIL` (a wall
     /// clock or a date), `BYDAY`, `BYMONTHDAY`, `BYMONTH`, `BYSETPOS`, `WKST`.
@@ -104,6 +93,20 @@ impl RecurrenceRule {
     /// # Errors
     /// An [`RruleProblem`] for anything else; the caller keeps the text.
     pub fn parse_rrule(text: &str) -> Result<Self, RruleProblem> {
+        Self::parse_with(text, None)
+    }
+
+    /// Like [`RecurrenceRule::parse_rrule`], and a UTC `UNTIL` (`…Z`, what RFC 5545 demands when
+    /// the start has a time zone) is turned into the wall clock of `zone`, the zone of the
+    /// reference point; across a daylight-saving change the offset of the end instant is used.
+    ///
+    /// # Errors
+    /// An [`RruleProblem`] (`Zone` for a zone that is unknown or custom); the caller keeps the text.
+    pub fn parse_rrule_in(text: &str, zone: &Zone) -> Result<Self, RruleProblem> {
+        Self::parse_with(text, Some(zone))
+    }
+
+    fn parse_with(text: &str, zone: Option<&Zone>) -> Result<Self, RruleProblem> {
         let mut seen = Vec::new();
         let mut rule = Self::every(Frequency::Daily, 1);
         let mut have_freq = false;
@@ -143,7 +146,7 @@ impl RecurrenceRule {
                             .ok_or(RruleProblem::Value("COUNT"))?,
                     );
                 }
-                "UNTIL" => rule.end = RuleEnd::Until(until(value)?),
+                "UNTIL" => rule.end = RuleEnd::Until(until(value, zone)?),
                 "WKST" => {
                     rule.first_day_of_week = weekday(value).ok_or(RruleProblem::Value("WKST"))?;
                 }
@@ -171,6 +174,7 @@ impl RecurrenceRule {
         if seen.contains(&"COUNT") && seen.contains(&"UNTIL") {
             return Err(RruleProblem::End);
         }
+        check_combination(&rule, &seen)?;
         Ok(rule)
     }
 }

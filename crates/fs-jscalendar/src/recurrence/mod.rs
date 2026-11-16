@@ -7,8 +7,10 @@
 mod keep;
 mod read;
 mod rule;
+mod until;
+mod valid;
 mod write;
 
-pub use keep::Recurrence;
+pub use keep::{OriginalText, Recurrence};
 pub use read::RruleProblem;
 pub use rule::{ByMonth, Frequency, NDay, RecurrenceRule, RuleEnd, Skip, Weekday};
