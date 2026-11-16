@@ -5,8 +5,8 @@
 
 use fs_types::Utc;
 
-/// What an offset trigger counts from. For a task `End` is its due time (a task has no end;
-/// RFC 8984 `relativeTo: "end"`).
+/// What an offset trigger counts from. RFC 8984 knows only `start` and `end`; for a task `End`
+/// means its due time (a task has no end), so tasks use `End` where they say "due".
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum RelativeTo {
     /// The start.
