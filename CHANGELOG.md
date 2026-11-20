@@ -2,6 +2,11 @@
 
 Versions follow ADR 0064 (0.0.N). No tag is set by the work branch.
 
+## 0.0.5
+
+- Only the pin changes: `fs-types` is lifted to the tag `v0.0.4` of `FreeSynergy/fs-types` (was `v0.0.1`), so the chain (calendar, tasks, objects, rpc) stays on one `fs-types` (plan chain-lift, option A). The lock holds exactly one `fs-types` source. No code change was needed.
+- Auf Deutsch: Nur der Pin aendert sich: `fs-types` steht jetzt auf Tag `v0.0.4` von `FreeSynergy/fs-types` (vorher `v0.0.1`), damit die Kette bei einem `fs-types` bleibt. Der Lock hat genau eine `fs-types`-Quelle. Kein Code geaendert.
+
 ## 0.0.4
 
 - Only the pin changes: `fs-types` now comes directly from its own repository, the tag `v0.0.1` of `FreeSynergy/fs-types` (was the tag `v0.0.26` of `fs-interfaces`; ADR 0093). `fs-interfaces` is no longer in the lock, so the lock holds exactly one `fs-types` source. Workflow pin `fs-release` `@v0.0.10` (was `@main`); `.fs-lock-sources.toml` with `strict = true`. No code change.

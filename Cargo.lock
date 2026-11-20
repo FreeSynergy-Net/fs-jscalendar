@@ -177,7 +177,7 @@ checksum = "1c66915cc5391097de7a2b0b972e8505aa33c0df401fd3a6811dbdb32881ba48"
 
 [[package]]
 name = "fs-jscalendar"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "calcard",
  "chrono",
@@ -192,8 +192,8 @@ dependencies = [
 
 [[package]]
 name = "fs-types"
-version = "0.0.1"
-source = "git+https://github.com/FreeSynergy/fs-types?tag=v0.0.1#6323518a1a1abba7c241e94d948668eb208649f5"
+version = "0.0.4"
+source = "git+https://github.com/FreeSynergy/fs-types?tag=v0.0.4#0dbc9b685746ea55ceb789fe1043a162e34ac387"
 dependencies = [
  "capnp",
  "chrono",
