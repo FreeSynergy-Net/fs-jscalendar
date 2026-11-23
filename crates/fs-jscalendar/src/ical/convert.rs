@@ -16,10 +16,13 @@ pub const ICS_MEDIA_TYPE: &str = "text/calendar";
 /// Convert one iCalendar text to upgraded JSCalendar 2.0 values of `@type` `at_type` (all other
 /// entries are left out) plus upgrade notes.
 pub fn parse_entries(text: &str, at_type: &str) -> Result<(Vec<Value>, Vec<String>)> {
-    let ical =
-        ICalendar::parse(text).map_err(|e| Error::ICalendar(format!("cannot parse: {e:?}")))?;
-    let js = ical.into_jscalendar::<String, String>();
-    let value: Value = serde_json::from_str(&js.to_string_pretty())?;
+    // Foreign files reach this parser; calcard-next may panic on malformed input (see `shielded`).
+    let pretty = shielded(|| {
+        let ical =
+            ICalendar::parse(text).map_err(|e| Error::ICalendar(format!("cannot parse: {e:?}")))?;
+        Ok(ical.into_jscalendar::<String, String>().to_string_pretty())
+    })?;
+    let value: Value = serde_json::from_str(&pretty)?;
     let up = upgrade(value);
     let entries = match up.value.get("entries") {
         Some(Value::Array(a)) => a.clone(),
@@ -51,7 +54,7 @@ pub fn write_ics(objects: impl IntoIterator<Item = Value>, prod_id: &str) -> Res
     });
     let text = group.to_string();
     // calcard-next asserts internally on malformed input; a panic must never take the program down.
-    std::panic::catch_unwind(|| {
+    shielded(|| {
         let js = JSCalendar::<String, String>::parse(&text)
             .map_err(|e| Error::ICalendar(format!("JSCalendar rejected: {e}")))?;
         let ical = js
@@ -59,11 +62,29 @@ pub fn write_ics(objects: impl IntoIterator<Item = Value>, prod_id: &str) -> Res
             .map_err(|e| Error::ICalendar(format!("cannot be expressed as iCalendar: {e}")))?;
         Ok(ical.to_string())
     })
-    .unwrap_or_else(|_| {
+}
+
+/// Run a call into the foreign converter; a panic inside it becomes `Error::ICalendar`, never
+/// reaches the caller.
+fn shielded<T>(f: impl FnOnce() -> Result<T> + std::panic::UnwindSafe) -> Result<T> {
+    std::panic::catch_unwind(f).unwrap_or_else(|_| {
         Err(Error::ICalendar(
             "the converter failed on this input".into(),
         ))
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // No input is known that makes calcard-next 3.0.1 panic, so the seam itself is tested with a
+    // closure that panics; `parse_entries` and `write_ics` both go through the same seam.
+    #[test]
+    fn a_panic_in_the_converter_becomes_an_error() {
+        let r: Result<()> = shielded(|| panic!("boom"));
+        assert!(matches!(r, Err(Error::ICalendar(m)) if m.contains("failed")));
+    }
 }
 
 /// iCalendar attendees need an address: fill `calendarAddress` from `email` or `sendTo.imip`, and
