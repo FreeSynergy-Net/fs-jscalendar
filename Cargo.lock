@@ -177,7 +177,7 @@ checksum = "1c66915cc5391097de7a2b0b972e8505aa33c0df401fd3a6811dbdb32881ba48"
 
 [[package]]
 name = "fs-jscalendar"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "calcard",
  "chrono",
@@ -192,8 +192,8 @@ dependencies = [
 
 [[package]]
 name = "fs-types"
-version = "0.0.4"
-source = "git+https://github.com/FreeSynergy/fs-types?tag=v0.0.4#0dbc9b685746ea55ceb789fe1043a162e34ac387"
+version = "0.0.5"
+source = "git+https://github.com/FreeSynergy/fs-types?tag=v0.0.6#2f45110417cf42311d5dee72287b7644312d4bc4"
 dependencies = [
  "capnp",
  "chrono",
@@ -201,7 +201,9 @@ dependencies = [
  "idna",
  "iri-string",
  "oxilangtag",
+ "semver",
  "unicode-normalization",
+ "zeroize",
 ]
 
 [[package]]
@@ -657,6 +659,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
 
 [[package]]
+name = "semver"
+version = "1.0.28"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a7852d02fc848982e0c167ef163aaff9cd91dc640ba85e263cb1ce46fae51cd"
+
+[[package]]
 name = "serde"
 version = "1.0.229"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1039,6 +1047,12 @@ dependencies = [
  "syn 3.0.9",
  "synstructure",
 ]
+
+[[package]]
+name = "zeroize"
+version = "1.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85ccff8a4805aba1eaa4cd4afcd49f7557dd2cf5fd79ffc37f8959466effc5aa"
 
 [[package]]
 name = "zerotrie"
