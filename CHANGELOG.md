@@ -2,6 +2,11 @@
 
 Versions follow ADR 0064 (0.0.N). No tag is set by the work branch.
 
+## 0.0.6
+
+- Only the pin changes: `fs-types` is lifted to the tag `v0.0.6` (was `v0.0.4`) and its git URL now points to `FreeSynergy-Net/fs-types` (one URL, one source in the lock). No code change.
+- Auf Deutsch: Nur der Pin aendert sich: `fs-types` steht auf Tag `v0.0.6` (vorher `v0.0.4`), die git-URL zeigt jetzt auf `FreeSynergy-Net/fs-types`. Kein Code geaendert.
+
 ## 0.0.5
 
 - Only the pin changes: `fs-types` is lifted to the tag `v0.0.4` of `FreeSynergy/fs-types` (was `v0.0.1`), so the chain (calendar, tasks, objects, rpc) stays on one `fs-types` (plan chain-lift, option A). The lock holds exactly one `fs-types` source. No code change was needed.
