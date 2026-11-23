@@ -18,7 +18,7 @@ Version 0.0.5. Taken from `fs-tasks-core` and `fs-calendars-core`, which held id
 | `calendar_object!` / `typed_object!`: members and common methods of an object, lossless `extra` | done |
 | `upgrade`: RFC 8984 to 2.0, idempotent, nothing dropped; fractions leave every date-time and duration of the object, durations round up; values in alerts and participants stay as they are | done |
 | `validate`: `Ctx`, `common`, `shared`, recurrence rule; owners add their own rules | done |
-| `ical`: `split_ics(text, Component)`, `unfolded_lines`, `parse_entries`, `write_ics` through `calcard =0.3.14`; components are found on unfolded lines, so a continuation line never ends one | done |
+| `ical`: `split_ics(text, Component)`, `unfolded_lines`, `parse_entries`, `write_ics` through `calcard-next =3.0.1`; components are found on unfolded lines, so a continuation line never ends one | done |
 | Date-times: exactly `YYYY-MM-DDTHH:MM:SS`, second 60 refused; messages quote a value short and escaped (`quoted`) | done |
 | `recurrence`: typed `RecurrenceRule` (calendar plan D5 subset), `Recurrence::{Rule, Original(text)}`, RRULE text reader (`parse_rrule`, `parse_rrule_in` with the zone for a UTC or date `UNTIL`; RFC 5545 3.3.10 combinations checked) and writer (`to_rrule`, `to_rrule_for(date_only)`, `to_rrule_in(zone)`) | done (0.0.2) |
 | `origin`: `Origin`, `OriginChannel` (fs-objects `object_origin`) | done (0.0.2) |
@@ -38,7 +38,7 @@ Version 0.0.5. Taken from `fs-tasks-core` and `fs-calendars-core`, which held id
 | `time/{zone,dur,format}.rs` | Value objects | `Zone`, nominal-day + exact-second `Dur`, wire formats |
 | `validate/*` | Specification + Collecting parameter | rules report into one `Ctx`; all issues at once |
 | `upgrade.rs` | Pipeline | small rewrite steps, idempotent, with notes |
-| `ical/convert.rs` | Adapter | wraps `calcard`; passes JSON values, owners make them typed |
+| `ical/convert.rs` | Adapter | wraps `calcard-next`; passes JSON values, owners make them typed |
 | `ical/split.rs` | Iterator-style scan | exact source text per UID, so the original stays byte for byte (ADR 0030) |
 | `upgrade_times.rs` | Pipeline step | whole seconds for `upgrade`, every original kept |
 | `error.rs`, `clock.rs`, `uid.rs` | none | plain error enum and pure helpers |
@@ -46,7 +46,7 @@ Version 0.0.5. Taken from `fs-tasks-core` and `fs-calendars-core`, which held id
 ## Decisions
 
 - **Errors:** owners turn `fs_jscalendar::Error` into their own with one `From` and keep the same variants.
-- **`calcard` is pinned to `=0.3.14`:** the last MIT/Apache version before later releases moved to AGPL.
+- **`calcard-next` is pinned to `=3.0.1`:** the maintained fork of calcard 0.3.14 (Apache-2.0 OR MIT); the own `upgrade.rs` stays (it keeps obsolete 1.0 data in the legacy property, rounds fractions and reports notes; `JSCalendar::upgrade` does none of that and works on typed values).
 - **`uid`s without `fs-store`:** this crate stores nothing, so it does not depend on the store. `new_uid` makes the same `urn:uuid:` + UUIDv7 form.
 - **Typed shared types (0.0.2):** `recurrence`, `origin` and `alert` are the single home of the types that calendar and tasks both need (decision 2026-11-16, no stand-in copies in `tasks_v1`). They are *not* the string-typed wire form of `model::RecurrenceRule`; that one stays for the JSON object. `alert::RelativeTo::End` is, for a task, its due time (RFC 8984).
 - **Conversion from the locked calendar stand-ins** is lossless both ways (test `fs-jscalendar-umwandlung-test.rs` in the calendar pilot): `TryFrom` where `fs-types` is stricter than the stand-in (a refused value is an error, never changed). `Recurrence::Original` has no stand-in form; the way back reports the text.

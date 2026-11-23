@@ -7,8 +7,8 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-# Last MIT/Apache version before Stalwart moved later releases to AGPL: pinned exactly (see DESIGN.md).
-calcard = "=0.3.14"
+# Maintained fork of calcard 0.3.14 (Apache-2.0 OR MIT), pinned exactly; only the adapter modules name it (see DESIGN.md).
+calcard-next = "=3.0.1"
 # Zones: jiff (Unlicense OR MIT) with the system tzdb preferred and a bundled copy as fallback (ADR 0026).
 jiff = { version = "0.2", features = ["tzdb-bundle-always"] }
 jiff-tzdb = "0.1"

@@ -1,6 +1,6 @@
 //! iCalendar (RFC 5545) to JSCalendar and back: module map.
 //!
-//! Pattern: Adapter (declarations) — the files wrap `calcard`; owners get typed objects from JSON
+//! Pattern: Adapter (declarations) — the files wrap `calcard-next`; owners get typed objects from JSON
 //! values, so each keeps only its own type here.
 
 mod convert;

@@ -15,7 +15,7 @@ Latest tag: `v0.0.5`.
 - Typed repeat rule (`recurrence`, with the original text kept for a rule it cannot compute), origin of imported objects (`origin`) and reminders (`alert`), shared by Calendar and Tasks.
 - Upgrade from RFC 8984 to JSCalendar 2.0, safe to repeat, dropping nothing.
 - Validation that reports all problems at once.
-- Split, read and write iCalendar through a pinned `calcard` version; the original text per entry stays byte for byte.
+- Split, read and write iCalendar through `calcard-next` (pinned exactly); the original text per entry stays byte for byte.
 - Used by FreeSynergy Calendar and FreeSynergy Tasks.
 
 ## What is not there yet
@@ -31,7 +31,7 @@ This library exists so that two programs share one standard instead of two copie
 ## For developers
 
 - Workspace crate: `fs-jscalendar`. The macros `calendar_object!` and `typed_object!` give an object its members and common methods.
-- `calcard` is pinned to an exact version on purpose: later versions changed licence to AGPL, which we cannot use.
+- `calcard-next` is pinned to an exact version on purpose (a maintained fork of calcard 0.3.14, Apache-2.0 OR MIT; nothing from the AGPL Stalwart monorepo is ever taken over).
 - Build and test: `cargo build --workspace` and `cargo test --workspace`.
 - Design: [DESIGN.md](DESIGN.md).
 - Licence: MIT OR Apache-2.0.

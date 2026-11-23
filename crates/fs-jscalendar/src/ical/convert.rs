@@ -1,10 +1,10 @@
-//! iCalendar <-> JSCalendar conversion through `calcard`.
+//! iCalendar <-> JSCalendar conversion through `calcard-next`.
 //!
-//! Pattern: Adapter — `calcard` (MIT OR Apache-2.0) maps iCalendar to JSCalendar and back; we hand
+//! Pattern: Adapter — `calcard-next` (MIT OR Apache-2.0) maps iCalendar to JSCalendar and back; we hand
 //! it JSON text and pass on JSON values. Imported text is kept as the original (ADR 0030).
 
-use calcard::icalendar::ICalendar;
-use calcard::jscalendar::JSCalendar;
+use calcard_next::icalendar::ICalendar;
+use calcard_next::jscalendar::JSCalendar;
 use serde_json::{Value, json};
 
 use crate::error::{Error, Result};
@@ -34,13 +34,10 @@ pub fn parse_entries(text: &str, at_type: &str) -> Result<(Vec<Value>, Vec<Strin
 
 /// Write JSCalendar values as one iCalendar stream, naming `prod_id` as the producer.
 pub fn write_ics(objects: impl IntoIterator<Item = Value>, prod_id: &str) -> Result<String> {
-    // calcard's JSCalendar model has no top-level `version` on entries; the rest is accepted as is.
+    // calcard-next understands `version: "2.0"` on entries (0.3.14 did not), so nothing is removed.
     let entries: Vec<Value> = objects
         .into_iter()
         .map(|mut v| {
-            if let Some(m) = v.as_object_mut() {
-                m.remove("version");
-            }
             prepare_participants(&mut v);
             v
         })
@@ -53,13 +50,13 @@ pub fn write_ics(objects: impl IntoIterator<Item = Value>, prod_id: &str) -> Res
         "entries": entries,
     });
     let text = group.to_string();
-    // calcard asserts internally on malformed input; a panic must never take the program down.
+    // calcard-next asserts internally on malformed input; a panic must never take the program down.
     std::panic::catch_unwind(|| {
         let js = JSCalendar::<String, String>::parse(&text)
             .map_err(|e| Error::ICalendar(format!("JSCalendar rejected: {e}")))?;
         let ical = js
             .into_icalendar()
-            .ok_or_else(|| Error::ICalendar("cannot be expressed as iCalendar".into()))?;
+            .map_err(|e| Error::ICalendar(format!("cannot be expressed as iCalendar: {e}")))?;
         Ok(ical.to_string())
     })
     .unwrap_or_else(|_| {
