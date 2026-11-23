@@ -1,15 +1,18 @@
-//! Golden test: recurrence and zones through `calcard-next` (iCalendar <-> JSCalendar).
+//! Golden test: recurrence and zones through `calcard-next` (iCalendar <-> JSCalendar 2.0).
 //!
+//! The output is JSCalendar 2.0 (draft-ietf-calext-jscalendarbis-23, "JSCalendar 2.0", obsoletes RFC 8984).
 //! The expected values are derived by hand from the RFCs, not copied from the output:
 //! * 2026-03-29 is the DST change in Europe/Berlin (RFC 5545 TZID, tzdb): CET (UTC+1) before, CEST
 //!   (UTC+2) after 02:00 local. A daily event at 09:00 local stays at 09:00 local (wall clock).
 //! * `UNTIL=20260403T070000Z`: RFC 5545 section 3.3.10 demands UTC when DTSTART has a TZID; on
-//!   2026-04-03 Berlin is CEST, so 07:00Z is 09:00 local. RFC 8984 section 4.3.3 states `until` as
-//!   LocalDateTime in the event's zone: "2026-04-03T09:00:00".
-//! * EXDATE becomes `recurrenceOverrides` with `excluded: true` (RFC 8984 section 4.3.2), keyed by
-//!   the LocalDateTime of the occurrence; RECURRENCE-ID becomes an override keyed the same way
-//!   carrying the changed properties (here `start` and `title`).
-//! * Duration 10:00 - 09:00 is "PT1H" (RFC 8984 section 4.2.3 / 3.3.1).
+//!   2026-04-03 Berlin is CEST, so 07:00Z is 09:00 local. jscalendarbis-23 section 3.3.3 states `until` as
+//!   LocalDateTime in the event's `timeZone`: "2026-04-03T09:00:00".
+//! * The single `recurrenceRule` object is the 2.0 form (section 3.3.3, Appendix A.2.1 obsoletes the
+//!   1.0 array `recurrenceRules` of RFC 8984 section 4.3.3).
+//! * EXDATE becomes `recurrenceOverrides` with `excluded: true` (RFC 8984 sections 4.3.5 / 4.3.6;
+//!   jscalendarbis-23 section 3.3.4), keyed by the LocalDateTime of the occurrence; RECURRENCE-ID becomes
+//!   an override keyed the same way carrying the changed properties (here `start` and `title`).
+//! * Duration 10:00 - 09:00 is "PT1H" (RFC 8984 sections 5.1.2 / 1.4.6; jscalendarbis-23 sections 4.1.2 / 1.5.6).
 
 use fs_jscalendar::ical::{parse_entries, write_ics};
 use serde_json::json;
@@ -41,31 +44,22 @@ fn berlin_series_across_dst_with_until_exdate_and_override() {
     assert_eq!(e["start"], "2026-03-28T09:00:00");
     assert_eq!(e["timeZone"], "Europe/Berlin");
     assert_eq!(e["duration"], "PT1H");
-    // The rule itself: see the two tests below (key name deviates from RFC 8984).
+    // The rule itself: see `rule_is_the_single_2_0_recurrence_rule`.
     let o = &e["recurrenceOverrides"];
     assert_eq!(o["2026-03-30T09:00:00"], json!({"excluded": true}));
     assert_eq!(o["2026-03-31T09:00:00"]["start"], "2026-03-31T11:00:00");
     assert_eq!(o["2026-03-31T09:00:00"]["title"], "Moved");
 }
 
-/// REPORTED DEVIATION: RFC 8984 section 4.3.2 names the property `recurrenceRules` (array of
-/// `RecurrenceRule`); calcard-next 3.0.1 emits the singular `recurrenceRule` object (JSCalendar 1.0 name).
-/// The expectation is the RFC one and is NOT adapted; the test is ignored until upstream or our
-/// adapter delivers `recurrenceRules`.
+/// 2.0 has one `recurrenceRule` object; the 1.0 array `recurrenceRules` is obsolete (jscalendarbis-23 A.2.1).
 #[test]
-#[ignore = "calcard-next 3.0.1 emits recurrenceRule (1.0), RFC 8984 says recurrenceRules"]
-fn rule_is_the_rfc_8984_array() {
-    let e = the_event();
-    let rule = &e["recurrenceRules"][0];
-    assert_eq!(rule["frequency"], "daily");
-    assert_eq!(rule["until"], "2026-04-03T09:00:00");
-}
-
-/// What calcard-next delivers today under its own key; the VALUE is the hand-derived one.
-#[test]
-fn rule_value_under_the_current_key_is_right() {
+fn rule_is_the_single_2_0_recurrence_rule() {
     let e = the_event();
     let rule = &e["recurrenceRule"];
+    assert!(
+        e.get("recurrenceRules").is_none(),
+        "1.0 array must not appear: {e:#?}"
+    );
     assert_eq!(rule["frequency"], "daily");
     assert_eq!(rule["until"], "2026-04-03T09:00:00");
 }

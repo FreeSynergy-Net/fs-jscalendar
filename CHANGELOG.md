@@ -2,6 +2,11 @@
 
 Versions follow ADR 0064 (0.0.N). No tag is set by the work branch.
 
+## Unreleased
+
+- Every call into `calcard-next` runs in a panic seam (`shielded`); new golden test `tests/golden_recurrence.rs` (Berlin DST, UNTIL, EXDATE, RECURRENCE-ID, written back to iCalendar) and tests that `upgrade()` lifts 1.0 `recurrenceRules` (one rule -> `recurrenceRule`; further rules kept in `freesynergy.net:legacy` with a note). No library code change in this correction.
+- Auf Deutsch: Jeder Aufruf in `calcard-next` laeuft in einer Panic-Naht (`shielded`); neuer Golden-Test `tests/golden_recurrence.rs` und Tests, dass `upgrade()` die 1.0-`recurrenceRules` hebt (eine Regel -> `recurrenceRule`; weitere bleiben in `freesynergy.net:legacy` mit Notiz). Kein Bibliothekscode in dieser Korrektur geaendert.
+
 ## 0.0.7
 
 - Only pins and the address change: the `fs-types` git URL is now `https://github.com/FreeSynergy-Net/fs-types` (tag `v0.0.6` unchanged), the workflow pins to `fs-release` are raised to `9eed5c95eb7311f2b68266a012ec778f51e3ac38` (v0.0.18). The lock holds exactly one `fs-types` source (the Net URL). No code change.

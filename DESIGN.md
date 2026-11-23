@@ -46,6 +46,7 @@ Version 0.0.5. Taken from `fs-tasks-core` and `fs-calendars-core`, which held id
 ## Decisions
 
 - **Errors:** owners turn `fs_jscalendar::Error` into their own with one `From` and keep the same variants.
+- **Panic seam and golden test:** every call into `calcard-next` runs inside `shielded` (`catch_unwind`, a panic becomes `Error`); `tests/golden_recurrence.rs` fixes recurrence, UNTIL, EXDATE, RECURRENCE-ID and the Berlin DST change against hand-derived JSCalendar 2.0 values.
 - **`calcard-next` is pinned to `=3.0.1`:** the maintained fork of calcard 0.3.14 (Apache-2.0 OR MIT); the own `upgrade.rs` stays (it keeps obsolete 1.0 data in the legacy property, rounds fractions and reports notes; `JSCalendar::upgrade` does none of that and works on typed values).
 - **`uid`s without `fs-store`:** this crate stores nothing, so it does not depend on the store. `new_uid` makes the same `urn:uuid:` + UUIDv7 form.
 - **Typed shared types (0.0.2):** `recurrence`, `origin` and `alert` are the single home of the types that calendar and tasks both need (decision 2026-11-16, no stand-in copies in `tasks_v1`). They are *not* the string-typed wire form of `model::RecurrenceRule`; that one stays for the JSON object. `alert::RelativeTo::End` is, for a task, its due time (RFC 8984).

@@ -148,3 +148,45 @@ fn a_message_quotes_a_value_short_and_escaped() {
     assert_eq!(quoted("short"), "\"short\"");
     assert!(quoted(&"é".repeat(100)).ends_with("... (200 bytes)"));
 }
+
+/// 1.0 input (RFC 8984 section 4.3.3, array `recurrenceRules`) lifted to the 2.0 single `recurrenceRule`
+/// (jscalendarbis-23 Appendix A.2.1): one rule becomes the rule, nothing is lost.
+#[test]
+fn upgrade_lifts_one_1_0_recurrence_rule_to_the_2_0_rule() {
+    let old = json!({"@type": "Event", "uid": "u", "start": "2026-01-01T10:00:00", "duration": "PT1H",
+        "recurrenceRules": [{"@type": "RecurrenceRule", "frequency": "daily"}]});
+    let up = upgrade(old);
+    assert_eq!(up.value["recurrenceRule"]["frequency"], "daily");
+    assert!(up.value.get("recurrenceRules").is_none());
+    assert!(
+        up.value.get("freesynergy.net:legacy").is_none(),
+        "nothing to keep: {:#?}",
+        up.value
+    );
+    assert_eq!(up.value["version"], "2.0");
+    assert_eq!(up.notes, vec![": version set to 2.0".to_owned()]);
+}
+
+/// Two 1.0 rules: 2.0 allows one. The first becomes `recurrenceRule`; the further one is kept in the
+/// legacy property and the notes say so (no silent loss).
+#[test]
+fn upgrade_keeps_a_second_1_0_recurrence_rule_in_legacy_and_reports_it() {
+    let old = json!({"@type": "Event", "uid": "u", "start": "2026-01-01T10:00:00", "duration": "PT1H",
+        "recurrenceRules": [
+            {"@type": "RecurrenceRule", "frequency": "daily"},
+            {"@type": "RecurrenceRule", "frequency": "weekly"}]});
+    let up = upgrade(old);
+    assert_eq!(up.value["recurrenceRule"]["frequency"], "daily");
+    assert!(up.value.get("recurrenceRules").is_none());
+    assert_eq!(
+        up.value["freesynergy.net:legacy"]["recurrenceRules"],
+        json!([{"@type": "RecurrenceRule", "frequency": "weekly"}])
+    );
+    assert!(
+        up.notes
+            .iter()
+            .any(|n| n.contains("1 further recurrence rule(s) moved to freesynergy.net:legacy")),
+        "{:?}",
+        up.notes
+    );
+}
