@@ -49,7 +49,7 @@ fn berlin_series_across_dst_with_until_exdate_and_override() {
 }
 
 /// REPORTED DEVIATION: RFC 8984 section 4.3.2 names the property `recurrenceRules` (array of
-/// RecurrenceRule); calcard-next 3.0.1 emits the singular `recurrenceRule` object (JSCalendar 1.0 name).
+/// `RecurrenceRule`); calcard-next 3.0.1 emits the singular `recurrenceRule` object (JSCalendar 1.0 name).
 /// The expectation is the RFC one and is NOT adapted; the test is ignored until upstream or our
 /// adapter delivers `recurrenceRules`.
 #[test]

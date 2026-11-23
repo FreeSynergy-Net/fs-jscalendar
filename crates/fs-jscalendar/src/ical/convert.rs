@@ -74,19 +74,6 @@ fn shielded<T>(f: impl FnOnce() -> Result<T> + std::panic::UnwindSafe) -> Result
     })
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    // No input is known that makes calcard-next 3.0.1 panic, so the seam itself is tested with a
-    // closure that panics; `parse_entries` and `write_ics` both go through the same seam.
-    #[test]
-    fn a_panic_in_the_converter_becomes_an_error() {
-        let r: Result<()> = shielded(|| panic!("boom"));
-        assert!(matches!(r, Err(Error::ICalendar(m)) if m.contains("failed")));
-    }
-}
-
 /// iCalendar attendees need an address: fill `calendarAddress` from `email` or `sendTo.imip`, and
 /// leave out participants that have none (they cannot be expressed as ATTENDEE).
 fn prepare_participants(v: &mut Value) {
@@ -116,5 +103,18 @@ fn prepare_participants(v: &mut Value) {
     });
     if ps.is_empty() {
         v.as_object_mut().map(|m| m.remove("participants"));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // No input is known that makes calcard-next 3.0.1 panic, so the seam itself is tested with a
+    // closure that panics; `parse_entries` and `write_ics` both go through the same seam.
+    #[test]
+    fn a_panic_in_the_converter_becomes_an_error() {
+        let r: Result<()> = shielded(|| panic!("boom"));
+        assert!(matches!(r, Err(Error::ICalendar(m)) if m.contains("failed")));
     }
 }
