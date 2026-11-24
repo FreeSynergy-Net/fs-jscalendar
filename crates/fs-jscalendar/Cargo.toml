@@ -17,5 +17,5 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 uuid = { version = "1", features = ["v7"] }
-# The shared basic types (Utc, LocalDateTime, Reference ...): pinned like the other FreeSynergy crates; the same tag as calendar and tasks.
-fs-types = { git = "https://github.com/FreeSynergy-Net/fs-types", tag = "v0.0.6" }
+# The shared basic types (Utc, LocalDateTime, Reference ...): pinned by rev like the other FreeSynergy crates.
+fs-types = { git = "https://github.com/FreeSynergy-Net/fs-types", rev = "722d3ce0156711d40cb278f2e835e865d9448290" }

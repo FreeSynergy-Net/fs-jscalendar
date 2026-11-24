@@ -4,6 +4,8 @@ Versions follow ADR 0064 (0.0.N). No tag is set by the work branch.
 
 ## Unreleased
 
+- Only the pin changes: `fs-types` is lifted from the tag `v0.0.6` to `rev = 722d3ce0156711d40cb278f2e835e865d9448290` (v0.0.7 line), so the dependants see exactly one `fs-types` in their graph. No code change.
+- Auf Deutsch: Nur der Pin aendert sich: `fs-types` steht statt auf Tag `v0.0.6` auf `rev = 722d3ce0156711d40cb278f2e835e865d9448290` (Linie v0.0.7), damit die Abhaengigen genau ein `fs-types` im Graph haben. Kein Code geaendert.
 - Every call into `calcard-next` runs in a panic seam (`shielded`); new golden test `tests/golden_recurrence.rs` (Berlin DST, UNTIL, EXDATE, RECURRENCE-ID, written back to iCalendar) and tests that `upgrade()` lifts 1.0 `recurrenceRules` (one rule -> `recurrenceRule`; further rules kept in `freesynergy.net:legacy` with a note). No library code change in this correction.
 - Auf Deutsch: Jeder Aufruf in `calcard-next` laeuft in einer Panic-Naht (`shielded`); neuer Golden-Test `tests/golden_recurrence.rs` und Tests, dass `upgrade()` die 1.0-`recurrenceRules` hebt (eine Regel -> `recurrenceRule`; weitere bleiben in `freesynergy.net:legacy` mit Notiz). Kein Bibliothekscode in dieser Korrektur geaendert.
 
